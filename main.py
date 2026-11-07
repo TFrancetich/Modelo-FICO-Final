@@ -21,6 +21,15 @@ def normalize_verification_status(value):
         return None
     return 1 if str(value).strip() in ("Verified", "Source Verified") else 0
 
+def download_headers(url):
+    """Envía el token de la ejecución solo a la API oficial de Apify (https://api.apify.com)."""
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    token = os.environ.get("APIFY_TOKEN")
+    if token and parsed.scheme == "https" and parsed.hostname == "api.apify.com":
+        return {"Authorization": f"Bearer {token}"}
+    return {}
+
 async def main():
     async with Actor:
         actor_input = await Actor.get_input() or {}
@@ -31,7 +40,13 @@ async def main():
                 "Falta 'inputFile'. Carga un CSV en el campo de archivo de entrada."
             )
 
-        response = requests.get(file_url, timeout=120)
+        response = requests.get(file_url, headers=download_headers(file_url), timeout=120)
+        if response.status_code in (401, 403):
+            raise PermissionError(
+                "No se pudo leer el archivo de entrada (HTTP %s). Si lo subiste con el campo de carga, "
+                "el actor necesita permisos para leer ese almacén: en Settings del actor elige "
+                "'Full permissions' (o usa un archivo con URL pública)." % response.status_code
+            )
         response.raise_for_status()
 
         try:
