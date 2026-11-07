@@ -1,0 +1,21 @@
+{
+  "actorOutputSchemaVersion": 1,
+  "title": "Resultados del cálculo de score FICO",
+  "properties": {
+    "results": {
+      "type": "string",
+      "title": "Clientes con score FICO (dataset)",
+      "template": "{{links.apiDefaultDatasetUrl}}/items"
+    },
+    "outputCsv": {
+      "type": "string",
+      "title": "CSV con fico_score y error (OUTPUT)",
+      "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/OUTPUT"
+    },
+    "summary": {
+      "type": "string",
+      "title": "Resumen de la ejecución (SUMMARY)",
+      "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/SUMMARY"
+    }
+  }
+}
