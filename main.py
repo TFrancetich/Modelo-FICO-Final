@@ -1,5 +1,6 @@
 import io
 import logging
+import math
 import os
 import requests
 import pandas as pd
@@ -20,6 +21,21 @@ def normalize_verification_status(value):
     if pd.isna(value):
         return None
     return 1 if str(value).strip() in ("Verified", "Source Verified") else 0
+
+def clean_value(value):
+    """Convierte NaN/NA/inf y tipos numpy en valores válidos para JSON estricto."""
+    if value is None:
+        return None
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
+    if hasattr(value, "item"):
+        value = value.item()
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    return value
 
 def download_headers(url):
     """Envía el token de la ejecución solo a la API oficial de Apify (https://api.apify.com)."""
@@ -133,8 +149,8 @@ async def main():
         )
 
         # También publica cada cliente en el dataset de Apify.
-        for record in df.where(pd.notna(df), None).to_dict(orient="records"):
-            await Actor.push_data(record)
+        for record in df.to_dict(orient="records"):
+            await Actor.push_data({key: clean_value(val) for key, val in record.items()})
 
         failed = int((df["error"] != "").sum())
         succeeded = len(df) - failed
