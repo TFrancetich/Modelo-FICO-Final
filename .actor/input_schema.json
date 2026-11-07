@@ -1,14 +1,19 @@
 {
-  "title": "Archivo CSV de clientes",
+  "title": "Datos de clientes",
   "type": "object",
   "schemaVersion": 1,
   "properties": {
     "inputFile": {
-      "title": "CSV de entrada",
+      "title": "CSV de entrada (archivo)",
       "type": "string",
       "description": "Carga el archivo CSV con los datos de los clientes (o indica su URL).",
       "editor": "fileupload"
+    },
+    "csvText": {
+      "title": "CSV de entrada (texto)",
+      "type": "string",
+      "description": "Alternativa al archivo: pega aquí el contenido completo del CSV, con la fila de encabezados. Útil para automatizaciones (Make, Zapier, API). Si se completa, tiene prioridad sobre el archivo.",
+      "editor": "textarea"
     }
-  },
-  "required": ["inputFile"]
+  }
 }

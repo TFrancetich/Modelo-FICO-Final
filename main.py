@@ -50,23 +50,28 @@ async def main():
     async with Actor:
         actor_input = await Actor.get_input() or {}
         file_url = actor_input.get("inputFile")
+        csv_text = actor_input.get("csvText")
 
-        if not file_url:
+        if csv_text and str(csv_text).strip():
+            # Modo automatización (Make, Zapier, API): el contenido del CSV viene en el input.
+            content = str(csv_text).lstrip("\ufeff").encode("utf-8")
+        elif file_url:
+            response = requests.get(file_url, headers=download_headers(file_url), timeout=120)
+            if response.status_code in (401, 403):
+                raise PermissionError(
+                    "No se pudo leer el archivo de entrada (HTTP %s). Si lo subiste con el campo de carga, "
+                    "el actor necesita permisos para leer ese almacén: en Settings del actor elige "
+                    "'Full permissions' (o usa un archivo con URL pública, o pega el contenido en 'csvText')." % response.status_code
+                )
+            response.raise_for_status()
+            content = response.content
+        else:
             raise ValueError(
-                "Falta 'inputFile'. Carga un CSV en el campo de archivo de entrada."
+                "Falta la entrada. Carga un CSV en 'inputFile' o pega su contenido en 'csvText'."
             )
-
-        response = requests.get(file_url, headers=download_headers(file_url), timeout=120)
-        if response.status_code in (401, 403):
-            raise PermissionError(
-                "No se pudo leer el archivo de entrada (HTTP %s). Si lo subiste con el campo de carga, "
-                "el actor necesita permisos para leer ese almacén: en Settings del actor elige "
-                "'Full permissions' (o usa un archivo con URL pública)." % response.status_code
-            )
-        response.raise_for_status()
 
         try:
-            df = pd.read_csv(io.BytesIO(response.content))
+            df = pd.read_csv(io.BytesIO(content))
         except Exception as exc:
             raise ValueError(f"No se pudo leer el CSV: {exc}") from exc
 
@@ -149,8 +154,12 @@ async def main():
         )
 
         # También publica cada cliente en el dataset de Apify.
-        for record in df.to_dict(orient="records"):
-            await Actor.push_data({key: clean_value(val) for key, val in record.items()})
+        records = [
+            {key: clean_value(val) for key, val in record.items()}
+            for record in df.to_dict(orient="records")
+        ]
+        if records:
+            await Actor.push_data(records)  # un solo envío por lotes (mucho más rápido que fila por fila)
 
         failed = int((df["error"] != "").sum())
         succeeded = len(df) - failed
