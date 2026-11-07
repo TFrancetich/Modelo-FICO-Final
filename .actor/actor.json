@@ -1,0 +1,9 @@
+{
+  "actorSpecification": 1,
+  "name": "fico-score-from-csv",
+  "title": "Calculador de score FICO desde CSV",
+  "version": "1.0",
+  "buildTag": "latest",
+  "input": "./input_schema.json",
+  "dockerfile": "./Dockerfile"
+}
