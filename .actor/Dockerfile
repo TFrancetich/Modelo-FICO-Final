@@ -1,19 +1,15 @@
 FROM apify/actor-python:3.11
 
+# La imagen base NO incluye el SDK de Apify: se instala desde requirements.txt.
+# apify 3.x trae su propio crawlee compatible con pydantic.
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# DIAGNÓSTICO (paso 1): solo imprime versiones, nunca falla el build.
-RUN python --version; pip --version; pip list 2>&1 | grep -iE "apify|crawlee|pydantic|scikit-learn|numpy|pandas" || echo "(grep sin coincidencias)"
+# Muestra versiones instaladas (nunca falla el build).
+RUN python --version; pip list 2>&1 | grep -iE "apify|crawlee|pydantic|scikit-learn|numpy|pandas" || echo "(sin coincidencias)"
 
-# DIAGNÓSTICO (paso 2): intenta importar el SDK y muestra el traceback completo si falla.
-RUN python -c "import traceback
-try:
-    from apify import Actor
-    print('apify import OK')
-except Exception:
-    traceback.print_exc()
-    raise"
+# Falla en el BUILD (con traceback completo) si el SDK no se puede importar.
+RUN python -c "from apify import Actor; print('apify import OK')"
 
 COPY . ./
 
